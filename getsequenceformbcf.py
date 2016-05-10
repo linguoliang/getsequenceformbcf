@@ -139,7 +139,7 @@ def getseqence(bcffile, line, ouputname):  # 处理数据
 
 
 def openbcf(bcffilename, outputname):
-    if bcffilename == "":
+    if bcffilename == None:
         bcffile = sys.stdin
     else:
         bcffile = open(bcffilename)
