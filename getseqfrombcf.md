@@ -7,16 +7,18 @@
 4. 
 
 ## 2. 数据输入模块
-1. 输入文件bcf/vcf 前部分有以#开头的陈述信息用自定义的TrimHead() 函数去除
-头部信息。
+1. 输入文件bcf/vcf 前部分有以#开头的陈述信息用自定义的TrimHead() 
+函数去除头部信息。
 2. -i 参数可以接受管道操作符传递的数据。  
 3.  
 
 
 ## 3. 数据输出模块
 1. fasta 文件格式：  
-> \>chromsome:POSstart-POSend|fulllength or intron
+> \>chromsome:POSstart-POSend|gene-0/1
 ACGTTACCGAGCGTGTGAGCTAGCAGTA  
 
    * 文件支持简并模式  
+   * gene 可以是多个，出现多个的时候为gene1_gene2...
+   * 0/1 代表是否为全长1表示是全长，0/1也可出现多个
 2. 统计文件

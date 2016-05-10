@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 This modlue is for base merge and return the mergebase with Upper Case
 """
@@ -18,4 +19,4 @@ def main(baseset):
     print merge(baseset)
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(frozenset("ATC")))
