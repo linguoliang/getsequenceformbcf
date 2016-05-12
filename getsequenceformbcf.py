@@ -68,33 +68,46 @@ def writetodisk(file, liststring, segment, chromsome, outlocal):  # 写入磁盘
     file.write(''.join(liststring) + '\n')
 
 
-def iscontinuity(twoNumber):  # 判断是否连续
+def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,
     """
 
     :type twoNumber: list
     """
     if len(twoNumber) == 1 or (
             (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 1 and twoNumber[-1][0] == twoNumber[-2][0]):
-        return True
+        return True, True
+    elif (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 0 and twoNumber[-1][0] == twoNumber[-2][0]:
+
+        return True, False
     else:
-        return False
+        return False, False
 
 
-def getsinglebase(refalt):
+def getsinglebase(refalt, twoNumber):
     """
     :type refalt: list
     """
-    m = []
-    n = ''
+    m = ''
+    # n=True
+    # p=True
     assert isinstance(refalt[1], str)
     refalt[1] = refalt[1].replace('X', refalt[0])
+    n, p = iscontinuity(twoNumber)
     if refalt[1].find(',') != -1:
         listforset = refalt[1].split(',')
         for element in listforset:
-            m.append(element[0])
-        return base_merge.merge(frozenset(m))
+            m = m + element[0]
+        # n,p =iscontinuity(twoNumber)
+        m = m.replace('N', '')
+        if p:
+            return base_merge.merge(frozenset(m)), n
+        else:
+            return "", n
     else:
-        return refalt[1][0]
+        if p:
+            return refalt[1][0], n
+        else:
+            return '', n
 
         # if refalt[1].find('X')==-1:
         #     return refalt[1][0]
@@ -112,7 +125,7 @@ def addtosequence(item, twoNumber):
     while len(twoNumber) >= 2:
         twoNumber.pop(0)
     twoNumber.append(tmp[0:2])
-    return getsinglebase(tmp[3:5]), iscontinuity(twoNumber)
+    return getsinglebase(tmp[3:5], twoNumber)
 
 
 def getseqence(bcffile, line, ouputname):  # 处理数据

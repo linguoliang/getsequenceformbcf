@@ -3,10 +3,12 @@
 This modlue is for base merge and return the mergebase with Upper Case
 """
 import sys
-baseDict={frozenset("AG"):'R' , frozenset('CT'):'Y' , frozenset('AC'):'M' ,
-          frozenset('GT'):'K' , frozenset('GC'):'S' , frozenset('AT'):'W' ,
-          frozenset('ATC'):'H', frozenset('GTC'):'B', frozenset('GAC'):'V',
-          frozenset('GAT'):'D', frozenset('ATCG'):'N'}
+
+baseDict = {frozenset("A"): 'A', frozenset('T'): 'T', frozenset('G'): 'G', frozenset('C'): 'C',
+            frozenset("AG"): 'R', frozenset('CT'): 'Y', frozenset('AC'): 'M',
+            frozenset('GT'):'K' , frozenset('GC'):'S' , frozenset('AT'):'W' ,
+            frozenset('ATC'):'H', frozenset('GTC'):'B', frozenset('GAC'):'V',
+            frozenset('GAT'):'D', frozenset('ATCG'):'N'}
 
 def merge(baseset):
     """
