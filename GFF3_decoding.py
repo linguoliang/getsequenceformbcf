@@ -76,7 +76,7 @@ def IsFullLength(scaffold, start, end):
     if genomeDict.has_key(scaffold):
         lens = len(genomeDict[scaffold])
         idx = B_Search(lens, start, scaffold)
-        while IsContinue:
+        while IsContinue and idx < lens:
             IsContinue, IsOverlap, IsOverAll = GffPatternDet(start, end, genomeDict[scaffold][idx].start,
                                                              genomeDict[scaffold][idx].end)
             if IsOverAll or IsOverlap:
@@ -88,7 +88,8 @@ def IsFullLength(scaffold, start, end):
             fulllen.append(0)
         return genelist,fulllen
     else:
-        raise ValueError("%s scaffold information not in Gff file!",scaffold)
+        print("%s scaffold information not in Gff file!", scaffold)
+        return None, None
 
 
 def decodegff(gtffilename):
