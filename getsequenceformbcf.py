@@ -57,44 +57,66 @@ def TrimHead(bcffile):  # 去掉带#号的部分
     return line, bcffile
 
 
-def writetodisk(file, liststring, segment, chromsome, outlocal):  # 写入磁盘
+def writetodisk(file, liststring, segment, chromsome, outlocal, fulllenout):  # 写入磁盘
     """
 
     :rtype: object
     """
     genelist, fulllen = GFF3_decoding.IsFullLength(chromsome, int(segment[0]), int(segment[1]))
-    file.write(">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' +'_'.join(genelist) +'-' +'_'.join([str(vluz) for vluz in fulllen]) + "\n")
-    outlocal.write(">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' +'_'.join(genelist) +'-' +'_'.join([str(vluz) for vluz in fulllen]) + "\n")
-    file.write(''.join(liststring) + '\n')
+    if genelist != None:
+        file.write(">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '_'.join(genelist) + '-' + '_'.join(
+                [str(vluz) for vluz in fulllen]) + "\n")
+        outlocal.write(
+            ">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '_'.join(genelist) + '-' + '_'.join(
+                    [str(vluz) for vluz in fulllen]) + "\n")
+        file.write(''.join(liststring) + '\n')
+        tmp = []
+        for m in range(len(genelist)):
+            tmp.append([genelist[m], fulllen[m]])
+        if sum(fulllen) > 0:
+            fulllenout.write('_'.join([k[0] for k in filter(lambda x: x[1] > 0, tmp)]) + '\n')
 
 
-def iscontinuity(twoNumber):  # 判断是否连续
+def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,
     """
 
     :type twoNumber: list
     """
     if len(twoNumber) == 1 or (
             (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 1 and twoNumber[-1][0] == twoNumber[-2][0]):
-        return True
+        return True, True
+    elif (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 0 and twoNumber[-1][0] == twoNumber[-2][0]:
+
+        return True, False
     else:
-        return False
+        return False, False
 
 
-def getsinglebase(refalt):
+def getsinglebase(refalt, twoNumber):
     """
     :type refalt: list
     """
-    m = []
-    n = ''
+    m = ''
+    # n=True
+    # p=True
     assert isinstance(refalt[1], str)
     refalt[1] = refalt[1].replace('X', refalt[0])
+    n, p = iscontinuity(twoNumber)
     if refalt[1].find(',') != -1:
         listforset = refalt[1].split(',')
         for element in listforset:
-            m.append(element[0])
-        return base_merge.merge(frozenset(m))
+            m = m + element[0]
+        # n,p =iscontinuity(twoNumber)
+        m = m.replace('N', '')
+        if p:
+            return base_merge.merge(frozenset(m)), n
+        else:
+            return "", n
     else:
-        return refalt[1][0]
+        if p:
+            return refalt[1][0], n
+        else:
+            return '', n
 
         # if refalt[1].find('X')==-1:
         #     return refalt[1][0]
@@ -112,12 +134,13 @@ def addtosequence(item, twoNumber):
     while len(twoNumber) >= 2:
         twoNumber.pop(0)
     twoNumber.append(tmp[0:2])
-    return getsinglebase(tmp[3:5]), iscontinuity(twoNumber)
+    return getsinglebase(tmp[3:5], twoNumber)
 
 
 def getseqence(bcffile, line, ouputname):  # 处理数据
     outfst = open(ouputname + '.fasta', 'w')
     outlocal = open(ouputname + '_loaction.txt', 'w')
+    fullenout = open(ouputname + '_fulllen.txt', 'w')
     sequence = []
     segment = []
     chromsome = ''
@@ -131,15 +154,16 @@ def getseqence(bcffile, line, ouputname):  # 处理数据
             sequence.append(initbase)
         else:
             segment.append(twoNumber[-2][1])
-            writetodisk(outfst, sequence, segment, twoNumber[-2][0], outlocal)
+            writetodisk(outfst, sequence, segment, twoNumber[-2][0], outlocal, fullenout)
             sequence = [initbase]
             segment = [twoNumber[-1][1]]
-    outfst.close()
+    fullenout.close()
     outlocal.close()
+    outfst.close()
 
 
 def openbcf(bcffilename, outputname):
-    if bcffilename == "":
+    if bcffilename == None:
         bcffile = sys.stdin
     else:
         bcffile = open(bcffilename)
