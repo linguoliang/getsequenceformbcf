@@ -74,7 +74,7 @@ def writetodisk(file, liststring, segment, chromsome, outlocal, fulllenout):  # 
         for m in range(len(genelist)):
             tmp.append([genelist[m], fulllen[m]])
         if sum(fulllen) > 0:
-            fulllenout.write('_'.join([k[0] for k in filter(lambda x: x[1] > 0, tmp)]))
+            fulllenout.write('_'.join([k[0] for k in filter(lambda x: x[1] > 0, tmp)]) + '\n')
 
 
 def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,
