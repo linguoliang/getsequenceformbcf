@@ -81,6 +81,7 @@ def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,
     """
 
     :type twoNumber: list
+    
     """
     if len(twoNumber) == 1 or (
             (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 1 and twoNumber[-1][0] == twoNumber[-2][0]):
