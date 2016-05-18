@@ -13,7 +13,12 @@
 3.  
 
 
-## 3. 数据输出模块
+
+## 3.数据处理模块
+### 1.碱基处理模块(base_merge.py)
+ 碱基处理模块是用于处理碱基的简并性的一个模块。碱基的简并性
+
+## 4. 数据输出模块
 1. fasta 文件格式：  
 > \>chromsome:POSstart-POSend|gene-0/1
 ACGTTACCGAGCGTGTGAGCTAGCAGTA  

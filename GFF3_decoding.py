@@ -14,13 +14,41 @@ class Gene:
     """
 
     def __init__(self, listitems, genename):
-        """init values"""
+        """
+        init values
+        """
         assert isinstance(listitems, list)
         assert isinstance(genename, str)
         self.scaffold = listitems[0]
         self.start = int(listitems[3])
         self.end = int(listitems[4])
         self.genename = genename
+
+
+class GeneSubunit(Gene):
+    """
+    用来存储gene的亚结构，外显子，内含子，utr等结构
+    """
+
+    def __init__(self, listitems, genename):
+        """
+        init values
+        """
+        Gene.__init__(self, listitems, genename)
+        self.Exons = []
+        self.Introns = []
+        self.Futrs = []
+        self.Tutrs = []
+
+    def AddExons(self, listitem):
+        self.Exons.append(listitem)
+
+    def AddFutrs(self, listitem):
+        self.Futrs.append(listitem)
+
+    def AddTutrs(self, listitem):
+        self.Tutrs.append(listitem)
+
 
 
 def classifyitems(listitems):
