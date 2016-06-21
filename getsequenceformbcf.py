@@ -48,6 +48,20 @@ def _parse_args():
     return options
 
 
+def EvaluateMapQuality(item):
+    itemlist = item.split("\t")
+    info = itemlist[7].split(';')
+    depth = ['', 5]
+    for m in info:
+        if m.find('DP=') != -1:
+            depth = m.split('=')
+            break
+    if int(depth[1]) >= 5:
+        return True
+    else:
+        return False
+
+
 def TrimHead(bcffile):  # 去掉带#号的部分
     for line in bcffile:
         if (line.find('#') == 0):
@@ -81,7 +95,7 @@ def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,
     """
 
     :type twoNumber: list
-    
+
     """
     if len(twoNumber) == 1 or (
             (int(twoNumber[-1][-1]) - int(twoNumber[-2][-1])) == 1 and twoNumber[-1][0] == twoNumber[-2][0]):
@@ -146,18 +160,31 @@ def getseqence(bcffile, line, ouputname):  # 处理数据
     segment = []
     chromsome = ''
     twoNumber = []
-    initbase, flag = addtosequence(line, twoNumber)
-    sequence.append(initbase)
-    segment.append(twoNumber[-1][1])
+    if EvaluateMapQuality(line):
+        initbase, flag = addtosequence(line, twoNumber)
+        sequence.append(initbase)
+        segment.append(twoNumber[-1][1])
     for item in bcffile:
-        initbase, flag = addtosequence(item, twoNumber)
-        if flag:
-            sequence.append(initbase)
+        mapQ = EvaluateMapQuality(item)
+        if mapQ:
+            initbase, flag = addtosequence(item, twoNumber)
+            if flag:
+                if segment == []:
+                    segment.append(twoNumber[-1][1])
+                sequence.append(initbase)
+            else:
+                if len(sequence) > 1:
+                    segment.append(twoNumber[-2][1])
+                    writetodisk(outfst, sequence, segment, twoNumber[-2][0], outlocal, fullenout)
+                sequence = [initbase]
+                segment = [twoNumber[-1][1]]
         else:
-            segment.append(twoNumber[-2][1])
-            writetodisk(outfst, sequence, segment, twoNumber[-2][0], outlocal, fullenout)
-            sequence = [initbase]
-            segment = [twoNumber[-1][1]]
+            if len(sequence) > 1:
+                segment.append(twoNumber[-1][1])
+                writetodisk(outfst, sequence, segment, twoNumber[-1][0], outlocal, fullenout)
+            sequence = []
+            segment = []
+
     fullenout.close()
     outlocal.close()
     outfst.close()
