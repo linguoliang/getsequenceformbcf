@@ -18,7 +18,7 @@ def merge(baseset):
     return baseDict[baseset]
 
 def main(baseset):
-    print merge(baseset)
+    print(merge(baseset))
 
 if __name__ == '__main__':
     sys.exit(main(frozenset("ATC")))

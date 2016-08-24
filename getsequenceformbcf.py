@@ -1,8 +1,8 @@
 # coding=utf-8
 __author__ = 'Guoliang Lin'
 Softwarename = 'get sequence from bcf with pipeline'
-version = '1.0.1'
-bugfixs = ''
+version = '1.0.2'
+bugfixs = '1.0.2:\n\tAdd depth information.'
 __date__ = '2016-03-02'
 import optparse
 import sys
@@ -10,6 +10,7 @@ import time
 import base_merge
 import GFF3_decoding
 
+seqdepth=5
 
 def printinformations():
     print("%s software version is %s in %s" % (Softwarename, version, __date__))
@@ -43,12 +44,14 @@ def _parse_args():
     #    parser.add_option('-v','--variation', dest='variation', type='string', help='input variation information file')
     parser.add_option('-g', '--gff3', dest='gff', help='gff3 file')
     parser.add_option('-o', '--output', dest='output', type='string', help='input variation information file')
+    parser.add_option('-d','--depth',dest='depth',type='int',default=5,help='depth')
     options, args = parser.parse_args()
     # positional arguments are ignored
     return options
 
 
 def EvaluateMapQuality(item):
+    global seqdepth
     itemlist = item.split("\t")
     info = itemlist[7].split(';')
     depth = ['', 5]
@@ -56,7 +59,7 @@ def EvaluateMapQuality(item):
         if m.find('DP=') != -1:
             depth = m.split('=')
             break
-    if int(depth[1]) >= 5:
+    if int(depth[1]) >= seqdepth:
         return True
     else:
         return False
@@ -153,6 +156,9 @@ def addtosequence(item, twoNumber):
 
 
 def getseqence(bcffile, line, ouputname):  # 处理数据
+    """
+    根据bcf文件处理得到覆盖深度大于5的文件
+    """
     outfst = open(ouputname + '.fasta', 'w')
     outlocal = open(ouputname + '_loaction.txt', 'w')
     fullenout = open(ouputname + '_fulllen.txt', 'w')
@@ -202,9 +208,11 @@ def openbcf(bcffilename, outputname):
 
 
 def main():
+    global seqdepth
     printinformations()
     fpkmdict = {}
     options = _parse_args()
+    seqdepth=options.depth
     GFF3_decoding.decodegff(options.gff)
     openbcf(options.input, options.output)
     programends()

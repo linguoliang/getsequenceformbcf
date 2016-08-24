@@ -24,6 +24,7 @@ class Isoform:
         self.IsoformDict = {}
         self.IsoformDict[listitem[2]] = [listitem[3:5]]
         self.Introns = []
+        self.exonNum = 1
 
     def addmore(self, listitem):
         if self.IsoformDict.has_key(listitem[2]):
@@ -38,10 +39,16 @@ class Isoform:
         self.Introns.sort(key=lambda x: int(x[0]))
         self.Introns = reduce(Isoverlab, self.Introns)
         self.Introns = [int(x) for x in self.Introns if True]
-        self.Introns.insert(0, int(self.IsoformDict["transcript"][0][0]))
-        self.Introns.append(int(self.IsoformDict["transcript"][0][1]))
+        #        self.Introns.insert(0, int(self.IsoformDict["transcript"][0][0]))
+        self.Introns.insert(0, int(
+            min(reduce(lambda x, y: [1000, min(int(x[0]), int(y[0]))], self.IsoformDict["transcript"]))))
+        #        self.Introns.append(int(self.IsoformDict["transcript"][0][1]))
+        self.Introns.append(max(reduce(lambda x, y: [0, max(int(x[1]), int(y[1]))], self.IsoformDict["transcript"])))
         self.Introns = [[self.Introns[2 * i], self.Introns[2 * i + 1]] for i in range(len(self.Introns) / 2)]
 
+    def getexonNumber(self):
+        if self.IsoformDict.has_key('exon'):
+            self.exonNum = len(self.IsoformDict['exon'])
 
 
 
@@ -77,6 +84,8 @@ class GeneSubunit(Gene):
         self.IsoformNum = 0
         self.superIsoform = []
         self.CommonIntrons = []
+        self.maxExon = 1
+        self.minExon = 10000
 
     def AddIsoform(self, listitem):
         self.IsoformNum = self.IsoformNum + 1
@@ -90,11 +99,15 @@ class GeneSubunit(Gene):
         构建出CommonIntrons
         """
         for x in self.Isoforms:
-            if x.has_key('UTR'):
-                self.superIsoform.extend(x["UTR"])
-            self.superIsoform.extend(x['exon'])
-        self.superIsoform.sort(key=lambda x: int(x[3]))
-        self.superIsoform = map(lambda x: x[3:5], self.superIsoform)
+            assert isinstance(x, Isoform)
+            x.getexonNumber()
+            self.maxExon = max(self.maxExon, x.exonNum)
+            self.minExon = min(self.minExon, x.exonNum)
+            if x.IsoformDict.has_key('UTR'):
+                self.superIsoform.extend(x.IsoformDict["UTR"])
+            self.superIsoform.extend(x.IsoformDict['exon'])
+        self.superIsoform.sort(key=lambda x: int(x[0]))
+        self.superIsoform = map(lambda x: x[0:2], self.superIsoform)
         self.superIsoform = reduce(Isoverlab, self.superIsoform)
         self.superIsoform = [int(x) for x in self.superIsoform if True]
         self.superIsoform.insert(0, self.start)
@@ -140,7 +153,7 @@ def B_Search(length, pos, scaffold):  # 二分搜索法
 def IsCoverIntron(star, end, gene):
     assert isinstance(gene, GeneSubunit)
     for isoform in gene.Isoforms:
-        for Intron in isoform:
+        for Intron in isoform.Introns:
             if star <= Intron[0] <= Intron[1] <= end:
                 return True
     return False
@@ -150,13 +163,13 @@ def IsoverIntron(start, end, gene):
     assert isinstance(gene, GeneSubunit)
     for Intron in gene.CommonIntrons:
         if start <= Intron[0] <= Intron[1] <= end:
-            return IsCoverIntron(start, end, gene)
+            return True
     return False
 
 
 def GffPatternDet(start, end, gene):
     """
-    IsOver的值为0 表示没有覆盖整个Intron,1表示覆盖整个Intron,2表示全长
+    IsOver的值为0 表示没有覆盖整个Intron,1表示有Intron,2表示覆盖一个全长的Intron,3表示覆盖全场
     """
     assert isinstance(gene, GeneSubunit)
     IsContinue = False
@@ -169,20 +182,29 @@ def GffPatternDet(start, end, gene):
         elif gene.start <= start < gene.end:  # gs<=as<=ge<=ae
             Overlab = True
             if IsoverIntron(start, end, gene):
-                IsOver = 1
+                if IsCoverIntron(start, end, gene):
+                    IsOver = 2
+                else:
+                    IsOver = 1
         else:  # as<=gs<=ge<=ae
             Overlab = True
-            IsOver = 2
+            IsOver = 3
     elif end <= gene.start:  # as<=ae<=gs<=ge
         pass
     elif start <= gene.start:  # as<=gs<=ae<=ge
         Overlab = True
-        if IsoverIntron(start.end, gene):
-            IsOver = 1
+        if IsoverIntron(start, end, gene):
+            if IsCoverIntron(start, end, gene):
+                IsOver = 2
+            else:
+                IsOver = 1
     else:  # gs<=as<=ae<=ge
         Overlab = True
         if IsoverIntron(start, end, gene):
-            IsOver = 1
+            if IsCoverIntron(start, end, gene):
+                IsOver = 2
+            else:
+                IsOver = 1
     return IsContinue, Overlab, IsOver
 
 
@@ -211,13 +233,13 @@ def IsFullLength(scaffold, start, end, part=False):
 
 def decodegff(gtffilename):
     """
-
+    根据GFF文件创建gene Isoform
     :rtype: str
     """
     with open(gtffilename) as gtffile:
         tmpgene = None
         for item in gtffile:
-            if item.find("#!") != 0:
+            if item.find("#") != 0:
                 listitems = item.split("\t")
                 # classifyitems(listitems)
                 if listitems[2] == 'gene':
@@ -230,6 +252,7 @@ def decodegff(gtffilename):
             listitems = item.split("\t")
             # classifyitems(listitems)
             if listitems[2] == 'gene':
+                tmpgene.builtsuperIsoform()
                 if tmpgene != None and genomeDict.has_key(tmpgene.scaffold):
                     genomeDict[tmpgene.scaffold].append(tmpgene)
                 elif tmpgene != None:
