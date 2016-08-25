@@ -45,6 +45,8 @@ class Isoform:
         #        self.Introns.append(int(self.IsoformDict["transcript"][0][1]))
         self.Introns.append(max(reduce(lambda x, y: [0, max(int(x[1]), int(y[1]))], self.IsoformDict["transcript"])))
         self.Introns = [[self.Introns[2 * i], self.Introns[2 * i + 1]] for i in range(len(self.Introns) / 2)]
+        self.Introns.pop()
+        self.Introns.pop(0)
 
     def getexonNumber(self):
         if self.IsoformDict.has_key('exon'):
@@ -114,7 +116,8 @@ class GeneSubunit(Gene):
         self.superIsoform.append(self.end)
         self.CommonIntrons = [[self.superIsoform[2 * i], self.superIsoform[2 * i + 1]] for i in
                               range(len(self.superIsoform) / 2) if True]
-
+        self.CommonIntrons.pop()
+        self.CommonIntrons.pop(0)
 
 
 
