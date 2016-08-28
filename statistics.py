@@ -45,11 +45,12 @@ for m in range(0, 6):
                     with open('SRR0' + str(intshuzi) + "no_intron", 'w') as nointron:
                         for location in inputfile:
                             location = location.strip()
+
                             locationsc = location.split('|')[0]
-                            locationreverse = location[::-1]
-                            liststatr, listgener = locationreverse.split('|')[0].split('-', 1)
-                            liststat = liststatr[::-1].split('_')
-                            listgene = listgener[::-1].split('_')
+                            # locationreverse = location[::-1]
+                            listgener, liststatr = location.split('|')[1].split('@', 1)
+                            liststat = liststatr.split('~')
+                            listgene = listgener.split('~')
                             for x in range(0, len(liststat)):
                                 listpatten = findpatten(listgene[x])
                                 statistis(listpatten[1])

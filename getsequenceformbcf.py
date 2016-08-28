@@ -81,17 +81,17 @@ def writetodisk(file, liststring, segment, chromsome, outlocal, fulllenout):  # 
     """
     genelist, fulllen = GFF3_decoding.IsFullLength(chromsome, int(segment[0]), int(segment[1]))
     if genelist != None:
-        file.write(">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '_'.join(genelist) + '-' + '_'.join(
+        file.write(">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '~'.join(genelist) + '@' + '~'.join(
                 [str(vluz) for vluz in fulllen]) + "\n")
         outlocal.write(
-            ">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '_'.join(genelist) + '-' + '_'.join(
+                ">" + chromsome + ':' + segment[0] + '-' + segment[1] + '|' + '~'.join(genelist) + '@' + '~'.join(
                     [str(vluz) for vluz in fulllen]) + "\n")
         file.write(''.join(liststring) + '\n')
         tmp = []
         for m in range(len(genelist)):
             tmp.append([genelist[m], fulllen[m]])
         if sum(fulllen) > 0:
-            fulllenout.write('_'.join([k[0] for k in filter(lambda x: x[1] > 0, tmp)]) + '\n')
+            fulllenout.write('~'.join([k[0] for k in filter(lambda x: x[1] > 0, tmp)]) + '\n')
 
 
 def iscontinuity(twoNumber):  # 判断是否连续 连续则返回True,

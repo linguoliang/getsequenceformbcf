@@ -59,7 +59,7 @@ class Gene:
     用来存储基因的信息，包括基因名，scaffold,以及起始和终止位点
     """
 
-    def __init__(self, listitems, genename):
+    def __init__(self, listitems, genename, geneId):
         """
         init values
         """
@@ -68,7 +68,8 @@ class Gene:
         self.scaffold = listitems[0]
         self.start = int(listitems[3])
         self.end = int(listitems[4])
-        self.genename = genename
+        self.genename = geneId
+        self.geneId = genename
 
 
 class GeneSubunit(Gene):
@@ -76,12 +77,12 @@ class GeneSubunit(Gene):
     用来存储gene的亚结构，外显子，内含子，utr等结构
     """
 
-    def __init__(self, listitems, genename):
+    def __init__(self, listitems, genename, geneId):
         """
         init values
         Exon Intron
         """
-        Gene.__init__(self, listitems, genename)
+        Gene.__init__(self, listitems, genename, geneId)
         self.Isoforms = []
         self.IsoformNum = 0
         self.superIsoform = []
@@ -109,7 +110,7 @@ class GeneSubunit(Gene):
                 self.superIsoform.extend(x.IsoformDict["UTR"])
             self.superIsoform.extend(x.IsoformDict['exon'])
         self.superIsoform.sort(key=lambda x: int(x[0]))
-        self.superIsoform = map(lambda x: x[0:2], self.superIsoform)
+        # self.superIsoform = map(lambda x: x[0:2], self.superIsoform)
         self.superIsoform = reduce(Isoverlab, self.superIsoform)
         self.superIsoform = [int(x) for x in self.superIsoform if True]
         self.superIsoform.insert(0, self.start)
@@ -234,6 +235,12 @@ def IsFullLength(scaffold, start, end, part=False):
         return None, None
 
 
+def Creategene(listitems):
+    tmp = listitems[8].split(';')
+    genename = tmp[2].split(' ')[2].replace('"', '')
+    geneId = tmp[0].split(' ')[1].replace('"', '')
+    return GeneSubunit(listitems[0:5], genename, geneId)
+
 def decodegff(gtffilename):
     """
     根据GFF文件创建gene Isoform
@@ -246,9 +253,11 @@ def decodegff(gtffilename):
                 listitems = item.split("\t")
                 # classifyitems(listitems)
                 if listitems[2] == 'gene':
-                    tmp = listitems[8].split(';')
-                    genename = tmp[2].split(' ')[2].replace('"', '')
-                    tmpgene = GeneSubunit(listitems[0:5], genename)
+                    tmpgene = Creategene(listitems)
+                #                    tmp = listitems[8].split(';')
+                #                    genename = tmp[2].split(' ')[2].replace('"', '')
+                #                    geneId = tmp[0].split(' ')[2].replace('"', '')
+                #                    tmpgene = GeneSubunit(listitems[0:5], genename,geneId)
                 break
 
         for item in gtffile:
@@ -260,9 +269,10 @@ def decodegff(gtffilename):
                     genomeDict[tmpgene.scaffold].append(tmpgene)
                 elif tmpgene != None:
                     genomeDict[tmpgene.scaffold] = [tmpgene]
-                tmp = listitems[8].split(';')
-                genename = tmp[2].split(' ')[2].replace('"', '')
-                tmpgene = GeneSubunit(listitems[0:5], genename)
+                tmpgene = Creategene(listitems)
+                # tmp = listitems[8].split(';')
+                # genename = tmp[2].split(' ')[2].replace('"', '')
+                # tmpgene = GeneSubunit(listitems[0:5], genename)
             elif listitems[2] == 'transcript':
                 if tmpgene.IsoformNum > 0:
                     tmpgene.Isoforms[-1].builtIntron()
