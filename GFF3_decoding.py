@@ -3,13 +3,19 @@
 This modlue is for decoding  Gff3 file or gtf file
 """
 import sys
+import copy
 
 geneDict = {}
 genomeDict = {}
 
 
+def findgenebyname(genome, string):
+    for lista in genome:
+        if lista.geneId == string:
+            return lista
+
 def Isoverlab(listone, listtwo):
-    if int(listone[-1]) < int(listtwo[0]):
+    if int(listone[-1]) < int(listtwo[0]) - 1:
         listone.extend(listtwo)
     elif int(listone[-1]) > int(listtwo[-1]):
         pass
@@ -33,9 +39,9 @@ class Isoform:
             self.IsoformDict[listitem[2]] = [listitem[3:5]]
 
     def builtIntron(self):
-        if self.IsoformDict.has_key("UTR"):
-            self.Introns.extend(self.IsoformDict["UTR"])
-        self.Introns.extend(self.IsoformDict["exon"])
+        # if self.IsoformDict.has_key("UTR"):
+        #     self.Introns.extend(self.IsoformDict["UTR"])
+        self.Introns.extend(copy.deepcopy(self.IsoformDict["exon"]))
         self.Introns.sort(key=lambda x: int(x[0]))
         self.Introns = reduce(Isoverlab, self.Introns)
         self.Introns = [int(x) for x in self.Introns if True]
@@ -43,14 +49,16 @@ class Isoform:
         self.Introns.insert(0, int(
             min(reduce(lambda x, y: [1000, min(int(x[0]), int(y[0]))], self.IsoformDict["transcript"]))))
         #        self.Introns.append(int(self.IsoformDict["transcript"][0][1]))
-        self.Introns.append(max(reduce(lambda x, y: [0, max(int(x[1]), int(y[1]))], self.IsoformDict["transcript"])))
-        self.Introns = [[self.Introns[2 * i], self.Introns[2 * i + 1]] for i in range(len(self.Introns) / 2)]
+        self.Introns.append(
+            int(max(reduce(lambda x, y: [0, max(int(x[1]), int(y[1]))], self.IsoformDict["transcript"]))))
+        self.Introns = [[self.Introns[2 * i] + 1, self.Introns[2 * i + 1] - 1] for i in range(len(self.Introns) / 2)]
         self.Introns.pop()
         self.Introns.pop(0)
 
     def getexonNumber(self):
         if self.IsoformDict.has_key('exon'):
             self.exonNum = len(self.IsoformDict['exon'])
+            return self.exonNum
 
 
 
@@ -84,11 +92,17 @@ class GeneSubunit(Gene):
         """
         Gene.__init__(self, listitems, genename, geneId)
         self.Isoforms = []
+        self.exon = []
         self.IsoformNum = 0
         self.superIsoform = []
         self.CommonIntrons = []
         self.maxExon = 1
         self.minExon = 10000
+        self.extraExon = []
+
+    def AddextraExon(self, exon):
+        self.extraExon.append(exon)
+
 
     def AddIsoform(self, listitem):
         self.IsoformNum = self.IsoformNum + 1
@@ -97,26 +111,39 @@ class GeneSubunit(Gene):
     def Additems(self, listitem):
         self.Isoforms[-1].addmore(listitem)
 
+    def builtsuperexon(self):
+        for x in self.Isoforms:
+            self.superIsoform.extend(copy.deepcopy(x.IsoformDict['exon']))
+        self.superIsoform.sort(key=lambda x: int(x[0]))
+        self.superIsoform = reduce(Isoverlab, self.superIsoform)
+        self.superIsoform = [int(x) for x in self.superIsoform if True]
+        self.exon = [[self.superIsoform[2 * i], self.superIsoform[2 * i + 1]] for i in
+                     range(len(self.superIsoform) / 2) if True]
+
     def builtsuperIsoform(self):
+
         """
         构建出CommonIntrons
         """
+        superIsoform = []
         for x in self.Isoforms:
             assert isinstance(x, Isoform)
             x.getexonNumber()
             self.maxExon = max(self.maxExon, x.exonNum)
             self.minExon = min(self.minExon, x.exonNum)
-            if x.IsoformDict.has_key('UTR'):
-                self.superIsoform.extend(x.IsoformDict["UTR"])
-            self.superIsoform.extend(x.IsoformDict['exon'])
-        self.superIsoform.sort(key=lambda x: int(x[0]))
-        # self.superIsoform = map(lambda x: x[0:2], self.superIsoform)
-        self.superIsoform = reduce(Isoverlab, self.superIsoform)
-        self.superIsoform = [int(x) for x in self.superIsoform if True]
-        self.superIsoform.insert(0, self.start)
-        self.superIsoform.append(self.end)
-        self.CommonIntrons = [[self.superIsoform[2 * i], self.superIsoform[2 * i + 1]] for i in
-                              range(len(self.superIsoform) / 2) if True]
+            # if x.IsoformDict.has_key('UTR'):
+            #     self.superIsoform.extend(x.IsoformDict["UTR"])
+            superIsoform.extend(copy.deepcopy(x.IsoformDict['exon']))
+        if self.extraExon != []:
+            superIsoform.extend(self.extraExon)
+        superIsoform.sort(key=lambda x: int(x[0]))
+        # superIsoform = map(lambda x: x[0:2], superIsoform)
+        superIsoform = reduce(Isoverlab, superIsoform)
+        superIsoform = [int(x) for x in superIsoform if True]
+        superIsoform.insert(0, self.start)
+        superIsoform.append(self.end)
+        self.CommonIntrons = [[superIsoform[2 * i] + 1, superIsoform[2 * i + 1] - 1] for i in
+                              range(len(superIsoform) / 2) if True]
         self.CommonIntrons.pop()
         self.CommonIntrons.pop(0)
 
@@ -140,6 +167,12 @@ class GeneSubunit(Gene):
         # def
 
         # def classifyitems(listitems, Is):
+
+
+global genesubunitqueue, genesubunitqueuepoplist
+
+genesubunitqueue = [GeneSubunit(['linfake', 'linfake', 'gene', '-2', '-1'], 'NULL', 'NULL')]  # 有交集的基因队列
+genesubunitqueuepoplist = []
 
 
 def B_Search(length, pos, scaffold):  # 二分搜索法
@@ -166,9 +199,9 @@ def IsCoverIntron(star, end, gene):
 def IsoverIntron(start, end, gene):
     assert isinstance(gene, GeneSubunit)
     for Intron in gene.CommonIntrons:
-        if start <= Intron[0] <= Intron[1] <= end:
-            return True
-    return False
+        if end <= Intron[0] or Intron[1] <= start:
+            return False
+    return True
 
 
 def GffPatternDet(start, end, gene):
@@ -241,7 +274,31 @@ def Creategene(listitems):
     geneId = tmp[0].split(' ')[1].replace('"', '')
     return GeneSubunit(listitems[0:5], genename, geneId)
 
+def builtoverlabexon(genesubunitqueue, tmpgene):
+    for i in range(len(genesubunitqueue)):
+        if genesubunitqueue[i].end < tmpgene.start:
+            genesubunitqueuepoplist.append(i)
+        else:
+            for exon in genesubunitqueue[i].exon:  # 其他基因
+                if tmpgene.start <= exon[0] <= exon[1] <= tmpgene.end or exon[0] <= tmpgene.start <= tmpgene.end <= \
+                        exon[1]:
+                    tmpgene.extraExon.append(exon)
+                elif exon[0] <= tmpgene.start <= exon[1] <= tmpgene.end:
+                    tmpgene.extraExon.append([tmpgene.start, exon[1]])
+                elif tmpgene.start <= exon[0] <= tmpgene.end <= exon[1]:
+                    tmpgene.extraExon.append([exon[0], tmpgene.end])
+            for exon in tmpgene.exon:  # 其他基因
+                if genesubunitqueue[i].start <= exon[0] <= exon[1] <= genesubunitqueue[i].end or exon[0] <= \
+                        genesubunitqueue[i].start <= genesubunitqueue[i].end <= exon[1]:
+                    genesubunitqueue[i].extraExon.append(exon)
+                elif exon[0] <= genesubunitqueue[i].start <= exon[1] <= genesubunitqueue[i].end:
+                    genesubunitqueue[i].extraExon.append([genesubunitqueue[i].start, exon[1]])
+                elif genesubunitqueue[i].start <= exon[0] <= genesubunitqueue[i].end <= exon[1]:
+                    genesubunitqueue[i].extraExon.append([exon[0], genesubunitqueue[i].end])
+
+
 def decodegff(gtffilename):
+    global genesubunitqueue, genesubunitqueuepoplist
     """
     根据GFF文件创建gene Isoform
     :rtype: str
@@ -264,11 +321,56 @@ def decodegff(gtffilename):
             listitems = item.split("\t")
             # classifyitems(listitems)
             if listitems[2] == 'gene':
-                tmpgene.builtsuperIsoform()
-                if tmpgene != None and genomeDict.has_key(tmpgene.scaffold):
-                    genomeDict[tmpgene.scaffold].append(tmpgene)
-                elif tmpgene != None:
-                    genomeDict[tmpgene.scaffold] = [tmpgene]
+                tmpgene.builtsuperexon()
+                if tmpgene.IsoformNum > 0:
+                    tmpgene.Isoforms[-1].builtIntron()
+                if genesubunitqueue[-1].scaffold == tmpgene.scaffold:
+                    # for i in range(len(genesubunitqueue)):
+                    #     if genesubunitqueue[i].end<tmpgene.start:
+                    #         genesubunitqueuepoplist.append(i)
+                    #     else:
+                    #         for exon in genesubunitqueue[i].exon:  # 其他基因
+                    #             if tmpgene.start<=exon[0]<=exon[1]<= tmpgene.end or exon[0]<=tmpgene.start<=tmpgene.end<=exon[1]:
+                    #                 tmpgene.extraExon.append(exon)
+                    #             elif exon[0]<=tmpgene.start<=exon[1]<=tmpgene.end:
+                    #                 tmpgene.extraExon.append([tmpgene.start,exon[1]])
+                    #             elif tmpgene.start<=exon[0]<=tmpgene.end<=exon[1]:
+                    #                 tmpgene.extraExon.append([exon[0],tmpgene.end])
+                    #         for exon in tmpgene.exon:  # 其他基因
+                    #             if genesubunitqueue[i].start<=exon[0]<=exon[1]<= genesubunitqueue[i].end or exon[0]<=genesubunitqueue[i].start<=genesubunitqueue[i].end<=exon[1]:
+                    #                 genesubunitqueue[i].extraExon.append(exon)
+                    #             elif exon[0]<=genesubunitqueue[i].start<=exon[1]<=genesubunitqueue[i].end:
+                    #                 genesubunitqueue[i].extraExon.append([genesubunitqueue[i].start,exon[1]])
+                    #             elif genesubunitqueue[i].start<=exon[0]<=genesubunitqueue[i].end<=exon[1]:
+                    #                 genesubunitqueue[i].extraExon.append([exon[0],genesubunitqueue[i].end])
+                    builtoverlabexon(genesubunitqueue, tmpgene)
+                    while genesubunitqueuepoplist:
+                        inputgene = genesubunitqueue.pop(genesubunitqueuepoplist.pop())
+                        if inputgene != None and genomeDict.has_key(inputgene.scaffold):
+                            inputgene.builtsuperIsoform()
+                            genomeDict[inputgene.scaffold].append(inputgene)
+                        elif inputgene != None:
+                            inputgene.builtsuperIsoform()
+                            genomeDict[inputgene.scaffold] = [inputgene]
+                    genesubunitqueue.append(tmpgene)
+                else:
+                    inputgene = genesubunitqueue.pop()
+                    while genesubunitqueue:
+                        # inputgene=genesubunitqueue.pop()
+                        builtoverlabexon(genesubunitqueue, inputgene)
+                        if inputgene != None and genomeDict.has_key(inputgene.scaffold):
+                            inputgene.builtsuperIsoform()
+                            genomeDict[inputgene.scaffold].append(inputgene)
+                        elif inputgene != None:
+                            inputgene.builtsuperIsoform()
+                            genomeDict[inputgene.scaffold] = [inputgene]
+                        inputgene = genesubunitqueue.pop()
+                    genesubunitqueue = [tmpgene]
+                # tmpgene.builtsuperIsoform()
+                # if tmpgene != None and genomeDict.has_key(tmpgene.scaffold):
+                #     genomeDict[tmpgene.scaffold].append(tmpgene)
+                # elif tmpgene != None:
+                #     genomeDict[tmpgene.scaffold] = [tmpgene]
                 tmpgene = Creategene(listitems)
                 # tmp = listitems[8].split(';')
                 # genename = tmp[2].split(' ')[2].replace('"', '')

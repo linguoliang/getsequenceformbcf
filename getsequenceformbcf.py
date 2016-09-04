@@ -11,7 +11,6 @@ import base_merge
 import GFF3_decoding
 
 seqdepth=5
-
 def printinformations():
     print("%s software version is %s in %s" % (Softwarename, version, __date__))
     print(bugfixs)
