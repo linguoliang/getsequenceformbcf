@@ -13,7 +13,7 @@ version = '1.0.1'
 bugfixs = ''
 __date__ = '2016-08-10'
 
-listnone = [-1, -1, -1]
+listnone = [-1, -1, -1, "NULL"]
 dictstatistics = {}
 
 
@@ -29,7 +29,7 @@ def findpatten(genename):
         for subgene in gtf.genomeDict[xlist]:
             assert isinstance(subgene, gtf.GeneSubunit)
             if subgene.genename == genename:
-                return [subgene.IsoformNum, subgene.maxExon, subgene.minExon]
+                return [subgene.IsoformNum, subgene.maxExon, subgene.minExon, subgene.geneId]
     return listnone
 
 
@@ -46,13 +46,13 @@ for m in range(0, 6):
                         for location in inputfile:
                             location = location.strip()
                             locationsc = location.split('|')[0]
-                            locationreverse = location[::-1]
-                            liststatr, listgener = locationreverse.split('|')[0].split('-', 1)
-                            liststat = liststatr[::-1].split('_')
-                            listgene = listgener[::-1].split('_')
+                            # locationreverse = location[::-1]
+                            listgener, liststatr = location.split('|')[1].split('@', 1)
+                            liststat = liststatr.split('~')
+                            listgene = listgener.split('~')
                             for x in range(0, len(liststat)):
                                 listpatten = findpatten(listgene[x])
-                                statistis(listpatten[1])
+                                # statistis(listpatten[1])
                                 if int(liststat[x]) == 3:
                                     #                                if listgene[x]!='':
                                     fulleni.write(
