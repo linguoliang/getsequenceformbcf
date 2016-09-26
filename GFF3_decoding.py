@@ -199,9 +199,9 @@ def IsCoverIntron(star, end, gene):
 def IsoverIntron(start, end, gene):
     assert isinstance(gene, GeneSubunit)
     for Intron in gene.CommonIntrons:
-        if end <= Intron[0] or Intron[1] <= start:
-            return False
-    return True
+        if not (end <= Intron[0] or Intron[1] <= start):
+            return True
+    return False
 
 
 def GffPatternDet(start, end, gene):
